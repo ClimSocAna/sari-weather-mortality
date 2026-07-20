@@ -1,0 +1,75 @@
+config:
+  adaptation_method: median_ewma
+  baseline_adaptation: true
+  checkpoint_path: null
+  correct_training_mean: true
+  date_range_stage1:
+    end: '2025-12-28'
+    start: '2014-10-13'
+  date_range_stage2:
+    end: '2024-12-29'
+    start: '2022-01-03'
+  death_daily_start_stage1: '2011-01-01'
+  death_daily_start_stage2: '2022-01-01'
+  death_weekly_start_stage1: '2011-01-03'
+  exclude_t: false
+  hidden_dim_init: 128
+  in_channel: 2
+  include_covid: true
+  include_sari: true
+  kernel_T_days: 6
+  kernel_sari_days: 10
+  model_name: HeatMortality_EXP
+  out_channel: 30
+  population_interpolation: true
+  sari_filename: SARI-Hospitalisierungsinzidenz_20260702.tsv
+  stage: 1
+  state_correction: true
+  temperature_attribution_reference_c: 16.0
+  val_split: 0.25
+  weather_data_kind: pop_average
+  weather_files:
+  - hostrada_mean_tas_pop_weighted_201101_202512.pt
+  - hostrada_tdew_pop_weighted_201101_202512.pt
+  weather_variables:
+  - tas
+  - tdew
+  weekday_correction: true
+global_constants:
+  AGE_GENDER_CHANNEL_COUNT: 30
+  AGE_GROUP_COUNT: 15
+  BASELINE_ADAPTATION_START_EPOCH: 200
+  BASELINE_ADAPTATION_UPDATE_INTERVAL: 50
+  BASELINE_EVAL_ITERATIONS: 5
+  BASELINE_WINDOW_WEEKS: 52
+  BOTTOM_K_SIZE: 10
+  COVID_FREE_DAYS: 1825
+  COVID_FREE_WEEKS: 260
+  DAYS_PER_WEEK: 7
+  DEATH_DATA_START_DAY: 4026
+  DEATH_DATA_START_WEEK: 583
+  DEFAULT_DATALOADER_WORKERS: 0
+  EARLY_STOPPING_MIN_DELTA: 0.0
+  EARLY_STOPPING_PATIENCE: 500
+  EARLY_STOPPING_START_EPOCH: 400
+  EWMA_HALFLIFE: 4.0
+  GENDER_COUNT: 2
+  GRADIENT_CLIP_VALUE: 1.0
+  LANDKREIS_DATA_PATH: null
+  LEARNING_RATE: 0.003
+  MEDIAN_FILTER_KERNEL: 3
+  NUM_SANITY_VAL_STEPS: 0
+  SCHEDULER_PATIENCE: 100
+  SCHEDULER_WARMUP_PROXY_LOSS: 100000000.0
+  STATE_CORRECTION_SIZE: 16
+  STATE_CORRECTION_START_EPOCH: 300
+  STATE_CORRECTION_UPDATE_INTERVAL: 10
+  STATIC_BASELINE_METHOD: bottom_10
+  TEMPERATURE_NOISE_STD: 0.5
+  TRAINER_MAX_EPOCHS: 5000
+  TRAIN_STEPS_PER_EPOCH: 10
+  TRIMMED_AVERAGE_TRIM_SIZE: 10
+  VAL_STEPS_PER_EPOCH: 1
+  WARMUP_EPOCHS: 300
+  WEEKDAY_CORRECTION_SIZE: 6
+  WEIGHT_DECAY: 0.01
