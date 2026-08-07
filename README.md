@@ -2,7 +2,7 @@
 
 This repository contains the model implementation, prepared input data, trained model ensembles, and analysis notebooks used for the manuscript:
 
-> Junyu Wang et al. **“Unified all-season mortality attribution by integrating environmental and respiratory infection indicators.”** Preprint manuscript, 13 July 2026.
+> Junyu Wang et al. **“Integrating respiratory infection surveillance and temperature data improves all-season mortality reconstruction.”** Preprint manuscript, 07 Aug 2026.
 
 The study reconstructs daily all-cause mortality in Germany with a component-based neural network that combines weather, severe acute respiratory infection (SARI) surveillance, demographic structure, and an adaptive mortality baseline. The primary validation target is reconstruction of observed all-cause mortality. Temperature-, non-COVID-SARI-, and COVID-19-associated mortality are model-based decomposition components, not directly observed cause-of-death counts.
 
