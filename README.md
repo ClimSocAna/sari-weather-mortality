@@ -163,9 +163,7 @@ The repository should be used with the interpretation given in the manuscript:
 Until a journal citation or DOI is available, cite the accompanying manuscript as:
 
 ```text
-Wang, J., an der Heiden, M., et al. (2026).
-Unified all-season mortality attribution by integrating environmental and
-respiratory infection indicators. Preprint manuscript, 13 July 2026.
+Wang, J., an der Heiden, M., Irrgang, C. (2026).
+Integrating respiratory infection surveillance and temperature data improves all-season mortality reconstruction. Preprint manuscript, 07 Aug 2026.
 ```
 
-Please update this section with the final author list, venue, DOI, and repository archive DOI when they become available.
