@@ -109,7 +109,7 @@ predictor as `model` or access any setup as `models[setup]`. Change
 | [04](notebooks/04_model_performance_sensitivity.ipynb) | Model performance and sensitivity | `default`, `exclude_temperature`, `temperature_only`, `no_covid`, `baseline_static`, `baseline_trimmed_mean`, `baseline_double_sided`, `tas_only`, `tas_wet_bulb`, `no_mean_alignment` |
 | [05](notebooks/05_daily_residual_diagnostics.ipynb) | Daily residual, SARI and weather diagnostics | `default`, `tas_only` |
 | [06](notebooks/06_temperature_lag_sensitivity.ipynb) | Daily and weekly training- and validation-period MSE across 1–30 weather input days | Hybrid and air-temperature-only lag sweeps |
-| [07](notebooks/07_period_rmse_by_lag.ipynb) | Period-specific daily RMSE tables across 1–30 weather input days | Hybrid and air-temperature-only lag sweeps |
+| [07](notebooks/07_period_rmse_by_lag.ipynb) | Period-specific daily and weekly RMSE tables across 1–30 weather input days | Hybrid and air-temperature-only lag sweeps |
 
 Notebooks 01–05 and 07 reconstruct mortality through 28 December 2025. Notebook 06
 uses each checkpoint's original training and validation periods. Full notebook
