@@ -1,0 +1,97 @@
+data_config:
+  data_root: ../../../../data
+  weather:
+    tas:
+      variable: tas
+      path: weather/hostrada_mean_tas_pop_weighted_201101_202512.pt
+      start_date: '2011-01-01'
+    tdew:
+      variable: tdew
+      path: weather/hostrada_tdew_pop_weighted_201101_202512.pt
+      start_date: '2011-01-01'
+    twb:
+      variable: twb
+      path: weather/hostrada_wet_bulb_pop_weighted_201101_202512.pt
+      start_date: '2011-01-01'
+    tas_area:
+      variable: tas
+      path: weather/hostrada_mean_tas_area_mean_201101_202512.pt
+      start_date: '2011-01-01'
+    tdew_area:
+      variable: tdew
+      path: weather/hostrada_tdew_area_mean_201101_202512.pt
+      start_date: '2011-01-01'
+  population_path: population/population_2011-2024.csv
+  mortality_path: death/mortality_20260714.npz
+  surveillance_path: sari/sari_20260709.npz
+  surveillance_start_date: '2014-09-29'
+  mortality_first_year: 2000
+  population_start_year: 2011
+  population_interpolation: true
+  population_tail_padding_days: 1000
+  mortality_missing_value: -1
+  preprocessing_version: stage1-v1
+selected_weather:
+- tas
+- tdew
+period:
+  start_date: '2014-10-13'
+  end_date: '2024-12-29'
+model_config:
+  out_channel: 30
+  hidden_dim_init: 128
+  kernel_T_days: 17
+  kernel_sari_days: 10
+  include_sari: true
+  include_covid: true
+  surveillance_scale: 0.01
+predictor_config:
+  weekday_correction: true
+  state_correction: default
+training_config:
+  validation_fraction: 0.25
+  train_steps_per_epoch: 10
+  validation_steps_per_epoch: 1
+  max_epochs: 5000
+  learning_rate: 0.003
+  weight_decay: 0.01
+  scheduler_patience: 100
+  scheduler_threshold: 0.0001
+  scheduler_factor: 0.3
+  scheduler_start_after_epoch: 400
+  gradient_clip_norm: 1.0
+  temperature_noise_std: 0.5
+  exclude_temperature: false
+  correction_warmup_epochs: 300
+  state_update_start_after_epoch: 300
+  state_update_interval: 10
+  baseline_adaptation: true
+  baseline_update_start_epoch: 200
+  baseline_update_interval: 50
+  align_training_mean: true
+  alignment_max_weeks: 260
+  raw_loss_weight_start_epoch: 200
+  raw_loss_weight_decay_epochs: 600
+  raw_loss_weight_minimum: 0.3
+  state_loss_days: 1825
+  state_loss_weeks: 260
+  early_stopping_patience: 500
+  early_stopping_min_delta: 0.0
+  warmup_proxy_loss: 100000000.0
+initial_baseline_config:
+  method: bottom_10
+  window_weeks: 52
+  trim_size: 10
+  bottom_k: 10
+  median_filter_kernel: 3
+  ewma_halflife: 4.0
+adaptive_baseline_config:
+  method: median_ewma
+  window_weeks: 52
+  trim_size: 10
+  bottom_k: 10
+  median_filter_kernel: 3
+  ewma_halflife: 4.0
+reference_config:
+  temperature_c: 16.0
+  relative_humidity_percent: 50.0

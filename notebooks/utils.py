@@ -1,141 +1,66 @@
-import math
-from pathlib import Path
-import re
-from typing import Literal
+"""Load complete native ensembles and retain only reduced notebook outputs."""
 
-import geopandas as gpd
-import geojson
-from shapely.geometry import Polygon, MultiPolygon
+from datetime import date
+from pathlib import Path
+import sys
+
+import pandas as pd
 import torch
 
-BASE_DIR = Path(__file__).parent.parent
 
-DATA_DIR = BASE_DIR / 'data'
-GEO_DIR = BASE_DIR / 'data' / 'geodata'
-STATE_DICT_DIR = BASE_DIR / 'statedict'
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
-ExecutionDevice = Literal["auto", "cpu", "cuda"]
-
-
-def resolve_device(execution_device: ExecutionDevice = "auto") -> torch.device:
-    """Resolve an explicit or automatically detected notebook execution device."""
-    if execution_device == "auto":
-        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if execution_device == "cuda" and not torch.cuda.is_available():
-        raise RuntimeError("CUDA was requested, but torch.cuda.is_available() is False")
-    if execution_device not in {"cpu", "cuda"}:
-        raise ValueError("execution_device must be 'auto', 'cpu', or 'cuda'")
-    return torch.device(execution_device)
+from sari_t.models.config import PredictionPeriod
+from sari_t.run.checkpoint import load_run_config
 
 
-def _checkpoint_version(path: Path) -> int:
-    match = re.match(r"v(\d+)-", path.name)
-    if match is None:
-        raise ValueError(f"Unexpected checkpoint filename: {path.name}")
-    return int(match.group(1))
+CONFIG = ROOT / "configs" / "training.example.yaml"
+RUN_ROOT = ROOT / "runtime" / "training" / "experiments"
+ANALYSIS_PERIOD = PredictionPeriod(date(2014, 10, 13), date(2025, 12, 28))
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+AGE_LABELS = ["0–29", *(f"{age}–{age + 4}" for age in range(30, 95, 5)), "95+"]
 
 
-def get_checkpoint_paths(experiment_name: str, device: torch.device) -> list[Path]:
-    """Return v0 for CPU execution or the complete ordered ensemble for CUDA."""
-    experiment_dir = STATE_DICT_DIR / experiment_name
-    if not experiment_dir.is_dir():
-        raise FileNotFoundError(f"Experiment directory not found: {experiment_dir}")
+def checkpoint_paths(setup):
+    """Return the ten released weights for a named experiment."""
+    config = load_run_config(CONFIG, setup=setup)
+    run = RUN_ROOT / config.run_name
+    paths = [run / "checkpoints" / f"final_{member:03d}.pt" for member in range(10)]
+    missing = [path.name for path in paths if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(f"Missing native weights in {run}: {', '.join(missing)}")
 
-    checkpoint_paths = sorted(experiment_dir.glob("v*-epoch=*.ckpt"), key=_checkpoint_version)
-    if not checkpoint_paths:
-        raise FileNotFoundError(f"No checkpoint files found in: {experiment_dir}")
-
-    if device.type == "cpu":
-        checkpoint_paths = [path for path in checkpoint_paths if _checkpoint_version(path) == 0]
-        if len(checkpoint_paths) != 1:
-            raise RuntimeError(f"Expected exactly one v0 checkpoint in {experiment_dir}, found {len(checkpoint_paths)}")
-
-    return checkpoint_paths
+    return paths
 
 
-def load_experiment(experiment_name: str, device: torch.device):
-    """Construct an evaluation model and select checkpoints for the execution device."""
-    from model.base_model import HeatMortalityBase
-
-    experiment_dir = STATE_DICT_DIR / experiment_name
-    hparams_path = experiment_dir / "hparams.yaml"
-    if not hparams_path.is_file():
-        raise FileNotFoundError(f"Hyperparameter file not found: {hparams_path}")
-
-    model = HeatMortalityBase.from_lightning_hparams_yaml(hparams_path).to(device)
-    model.eval()
-    model.on_train_start()
-    model._notebook_initial_basic_death_rate_range = model.basic_death_rate_range.detach().clone()
-    checkpoint_paths = get_checkpoint_paths(experiment_name, device)
-    print(
-        f"{experiment_name}: device={device.type}, "
-        f"checkpoints={len(checkpoint_paths)} ({', '.join(path.name.split('-', 1)[0] for path in checkpoint_paths)})"
-    )
-    return model, checkpoint_paths
+def ensemble(model, paths, summarize, *, scenarios=None):
+    """Evaluate weights in the supplied workspace and average compact summaries."""
+    totals = {}
+    for index, path in enumerate(paths):
+        model.load_weights(path)
+        result = model.evaluate(scenarios=scenarios)
+        for name, value in summarize(model, result).items():
+            value = value.detach().cpu()
+            if index == 0:
+                totals[name] = value.clone()
+            else:
+                totals[name].add_(value)
+        del result
+        model.clear_member()
+    return {name: value / len(paths) for name, value in totals.items()}
 
 
-def load_checkpoint(model, checkpoint_path: Path, device: torch.device) -> None:
-    """Load one trusted, repository-bundled Lightning checkpoint for evaluation."""
-    initial_baseline = getattr(model, "_notebook_initial_basic_death_rate_range", None)
-    if initial_baseline is None:
-        raise RuntimeError("Model must be constructed with load_experiment before loading checkpoints")
-    model.basic_death_rate_range.copy_(initial_baseline)
-    model.training_mean_correction_factor = None
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    state_dict = checkpoint["state_dict"] if "state_dict" in checkpoint else checkpoint
-    model.load_state_dict(state_dict)
-    model.eval()
+def daily_index(period=ANALYSIS_PERIOD):
+    return pd.date_range(period.start_date, period.end_date, freq="D", name="Date")
 
 
-def dew_point_from_relative_humidity(temperature_c: float, relative_humidity: float) -> float:
-    """Return dew point in Celsius for relative humidity expressed from 0 to 1."""
-    if not 0 < relative_humidity <= 1:
-        raise ValueError("relative_humidity must be in the interval (0, 1]")
-    magnus_a = 17.625
-    magnus_b = 243.04
-    gamma = math.log(relative_humidity) + magnus_a * temperature_c / (magnus_b + temperature_c)
-    return magnus_b * gamma / (magnus_a - gamma)
+def weekly_sum(values):
+    return values.reshape(-1, 7, *values.shape[1:]).sum(dim=1)
 
 
-def _load_geojson_gdf(file_name: str, geometry_column: str, properties: list[str] | None = None) -> gpd.GeoDataFrame:
-    with open(GEO_DIR / file_name) as file_handle:
-        gj = geojson.load(file_handle)
-
-    geometries: list[MultiPolygon] = []
-    data = {key: [] for key in (properties or [])}
-    for feature in gj["features"]:
-        polygons: list[Polygon] = []
-        process_coordinates(feature["geometry"]["coordinates"], polygons)
-        geometries.append(MultiPolygon(polygons))
-        for key in data:
-            data[key].append(feature["properties"][key])
-
-    data[geometry_column] = geometries
-    return gpd.GeoDataFrame(data, crs="EPSG:4326")
-
-
-def get_gdf_kreis() -> gpd.GeoDataFrame:
-    gdf = _load_geojson_gdf("georef-germany-kreis.geojson", "geometry", ["krs_code"])
-    gdf.iloc[118, gdf.columns.get_loc("geometry")] = gdf.iloc[118].geometry.union(gdf.iloc[82].geometry)
-    gdf = gdf.drop(index=82).reset_index(drop=True)
-    gdf = gdf.sort_values(by="krs_code").reset_index(drop=True)
-    return gdf
-
-
-def get_gdf_de() -> gpd.GeoDataFrame:
-    return _load_geojson_gdf("georef-germany.geojson", "geometry")
-
-
-def get_gdf_land() -> gpd.GeoDataFrame:
-    return _load_geojson_gdf("georef-germany-land.geojson", "geometry").reset_index(drop=True)
-
-
-def process_coordinates(coord: list, polygons: list[Polygon]) -> None:
-    if isinstance(coord[0][0][0], float):
-        p = Polygon(coord[0])
-        for j in range(1, len(coord)):
-            p = p.difference(Polygon(coord[j]))
-        polygons.append(p)
-    else:
-        for c in coord:
-            process_coordinates(c, polygons)
+def national_daily(model, result):
+    return {
+        "Observed": model.labels.daily_land.sum(dim=1),
+        "Predicted": result.predictions.total_deaths.sum(dim=(1, 2, 3)),
+    }
