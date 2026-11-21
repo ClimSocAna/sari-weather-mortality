@@ -19,7 +19,6 @@ CONFIG = ROOT / "configs" / "training.example.yaml"
 RUN_ROOT = ROOT / "runtime" / "training" / "experiments"
 ANALYSIS_PERIOD = PredictionPeriod(date(2014, 10, 13), date(2025, 12, 28))
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-AGE_LABELS = ["0–29", *(f"{age}–{age + 4}" for age in range(30, 95, 5)), "95+"]
 
 
 def checkpoint_paths(setup):
@@ -34,20 +33,25 @@ def checkpoint_paths(setup):
     return paths
 
 
-def ensemble(model, paths, summarize, *, scenarios=None):
+def ensemble(model, paths, summarize, *, scenarios=None, keep_members=False):
     """Evaluate weights in the supplied workspace and average compact summaries."""
     totals = {}
+    members = {}
     for index, path in enumerate(paths):
         model.load_weights(path)
         result = model.evaluate(scenarios=scenarios)
         for name, value in summarize(model, result).items():
             value = value.detach().cpu()
-            if index == 0:
+            if keep_members:
+                members.setdefault(name, []).append(value)
+            elif index == 0:
                 totals[name] = value.clone()
             else:
                 totals[name].add_(value)
         del result
         model.clear_member()
+    if keep_members:
+        return {name: torch.stack(values) for name, values in members.items()}
     return {name: value / len(paths) for name, value in totals.items()}
 
 
@@ -64,3 +68,13 @@ def national_daily(model, result):
         "Observed": model.labels.daily_land.sum(dim=1),
         "Predicted": result.predictions.total_deaths.sum(dim=(1, 2, 3)),
     }
+
+
+
+def weekly_surveillance(dates):
+    """Align all-age weekly RKI incidence to Monday-indexed mortality weeks."""
+    source, = (ROOT / "data" / "sari").glob("*.tsv")
+    raw = pd.read_csv(source, sep="\t").query('Altersgruppe == "00+"').copy()
+    raw["Date"] = pd.to_datetime(raw["Kalenderwoche"] + "-1", format="%G-W%V-%u")
+    incidence = raw.pivot(index="Date", columns="SARI", values="Hospitalisierungsinzidenz")
+    return incidence.reindex(dates[::7])
