@@ -108,9 +108,11 @@ predictor as `model` or access any setup as `models[setup]`. Change
 | [03](notebooks/03_adaptive_baseline_mortality.ipynb) | Registered and adaptive baseline mortality | `default` |
 | [04](notebooks/04_model_performance_sensitivity.ipynb) | Model performance and sensitivity | `default`, `exclude_temperature`, `temperature_only`, `no_covid`, `baseline_static`, `baseline_trimmed_mean`, `baseline_double_sided`, `tas_only`, `tas_wet_bulb`, `no_mean_alignment` |
 | [05](notebooks/05_daily_residual_diagnostics.ipynb) | Daily residual, SARI and weather diagnostics | `default`, `tas_only` |
+| [06](notebooks/06_temperature_lag_sensitivity.ipynb) | Daily and weekly training- and validation-period losses across 1–30 weather input days | Hybrid and air-temperature-only lag sweeps |
 
-The analyses extend the evaluation window through 28 December 2025. Full
-notebook execution requires the completed native ensembles.
+Notebooks 01–05 reconstruct mortality through 28 December 2025. Notebook 06
+uses each checkpoint's original training and validation periods. Full notebook
+execution requires the native ensembles and a compute node.
 
 ## Native training and inference
 
