@@ -21,16 +21,21 @@ ANALYSIS_PERIOD = PredictionPeriod(date(2014, 10, 13), date(2025, 12, 28))
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def checkpoint_paths(setup):
-    """Return the ten released weights for a named experiment."""
-    config = load_run_config(CONFIG, setup=setup)
-    run = RUN_ROOT / config.run_name
-    paths = [run / "checkpoints" / f"final_{member:03d}.pt" for member in range(10)]
-    missing = [path.name for path in paths if not path.is_file()]
-    if missing:
-        raise FileNotFoundError(f"Missing native weights in {run}: {', '.join(missing)}")
-
+def run_checkpoint_paths(run):
+    """Return all final members in order, checking the released ensemble is complete."""
+    directory = run / "checkpoints"
+    paths = sorted(directory.glob("final_[0-9][0-9][0-9].pt"))
+    expected = [directory / f"final_{member:03d}.pt" for member in range(max(10, len(paths)))]
+    if paths != expected:
+        missing = [path.name for path in expected if not path.is_file()]
+        raise FileNotFoundError(f"Incomplete native ensemble in {run}: {', '.join(missing)}")
     return paths
+
+
+def checkpoint_paths(setup):
+    """Return all released weights for a named experiment."""
+    config = load_run_config(CONFIG, setup=setup)
+    return run_checkpoint_paths(RUN_ROOT / config.run_name)
 
 
 def ensemble(model, paths, summarize, *, scenarios=None, keep_members=False, baseline_reference=None):

@@ -92,7 +92,7 @@ The environment is portable and does not force a CUDA runtime. On an NVIDIA syst
 
 The notebooks follow the analyses in the [original notebook
 snapshot](https://github.com/ClimSocAna/sari-weather-mortality/tree/4402a80d3e490ad7964a3be12597043761bebda1/notebooks).
-They load native `final_000.pt` through `final_009.pt` from the matching run
+They load all final checkpoints from the matching run
 directories under `runtime/training/experiments/`. Run them on a compute node
 with access to the checkout and weights. The notebooks select CUDA when
 available. Their figures and tables are recomputed from the native ensembles.
@@ -166,7 +166,7 @@ paths. Resume in the same data location with
 `python train.py --resume PATH_TO_LAST_CHECKPOINT`. Train ensemble members
 with distinct `--member-id` values and the same experiment configuration.
 
-To load the ten manuscript members using the default experiment configuration:
+To load all available manuscript members using the default experiment configuration:
 
 ```bash
 run_dir="$(python train.py --print-run-directory)"
@@ -176,8 +176,7 @@ import sys
 from sari_t.inference import evaluate_runs
 
 run = Path(sys.argv[1])
-members = [run / "checkpoints" / f"final_{member:03d}.pt" for member in range(10)]
-result = evaluate_runs(members, device="cpu")
+result = evaluate_runs(run, device="cpu")
 print(result.predictions.total_deaths.shape)
 PYTHON
 ```
@@ -187,12 +186,11 @@ to the `--print-run-directory` command as well.
 
 ## Public weights and run times
 
-The release includes 79 native ensembles from `weather_sari_model`, including
+The release includes 70 native ensembles from `weather_sari_model`, including
 the updated nine-day configurations. Each experiment under
-`runtime/training/experiments/<experiment>/` includes all ten final checkpoints
-and the run configuration. The six- and nine-day hybrid runs also include
-members `010`–`049` for initialization sensitivity. The manuscript notebooks
-select `000`–`009`. The links in
+`runtime/training/experiments/<experiment>/` includes the final checkpoints and run configuration. The six- and nine-day hybrid runs
+have 50 members each. Other ensembles have ten members each. The notebooks use
+all available members for each selected run. The links in
 `runtime/training/sets/` group related experiments. Input paths are relative to
 the release checkout and point to the matching files under `data/`.
 
