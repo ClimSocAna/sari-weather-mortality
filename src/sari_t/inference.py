@@ -210,17 +210,25 @@ class InferenceModel:
             covariates, self._initial_baseline.clone(), self.data.population,
         )
         predictions = self.predictor(inputs)
-        reference_effect = reference_temperature_effect(
-            self.predictor.effect_model, covariates, self.weather_variables,
-            baseline_reference or config.reference_config,
-            minimum_temperature_effect=cast(torch.Tensor, predictions.minimum_temperature_effect),
-        )
-        factors = self.predictor.correction_factors(self.data.population.shape[0])
+        reference_effect = None
+        if not config.training_config.exclude_temperature:
+            reference_effect = reference_temperature_effect(
+                self.predictor.effect_model, covariates, self.weather_variables,
+                baseline_reference or config.reference_config,
+                minimum_temperature_effect=cast(torch.Tensor, predictions.minimum_temperature_effect),
+            )
+            factors = self.predictor.correction_factors(self.data.population.shape[0])
+
+        def reference_counts() -> torch.Tensor:
+            if reference_effect is None:
+                return predictions.temperature_deaths
+            return reference_temperature_deaths(reference_effect, inputs, factors)
+
         if config.training_config.baseline_adaptation:
             settings = self._evaluation_config
             relative_change = None
             for iteration in range(1, settings.maximum_iterations + 1):
-                reference_deaths = reference_temperature_deaths(reference_effect, inputs, factors)
+                reference_deaths = reference_counts()
                 updated = calculate_updated_baseline_rate(
                     self.labels.weekly_de_age_sex, predictions, reference_deaths,
                     inputs.population, config.adaptive_baseline_config,
@@ -245,7 +253,7 @@ class InferenceModel:
                     f"Evaluation baseline did not converge after {settings.maximum_iterations} iterations; "
                     f"relative change={relative_change}"
                 )
-        reference_deaths = reference_temperature_deaths(reference_effect, inputs, factors)
+        reference_deaths = reference_counts()
         return inputs, predictions, reference_deaths
 
     @torch.no_grad()
@@ -273,11 +281,14 @@ class InferenceModel:
         )
         self._baseline_rate = inputs.baseline_rate
         self._alignment_factor = self._estimate_alignment_factor(predictions)
-        reference = apply_mean_alignment(
-            reference_deaths + predictions.sari_deaths + predictions.covid_deaths,
-            self._alignment_factor,
-        )
+        if not config.training_config.exclude_temperature:
+            reference = apply_mean_alignment(
+                reference_deaths + predictions.sari_deaths + predictions.covid_deaths,
+                self._alignment_factor,
+            )
         predictions = apply_mean_alignment(predictions, self._alignment_factor)
+        if config.training_config.exclude_temperature:
+            reference = predictions.total_deaths
         self.result = MemberResult(
             model_config=self.model_config, labels=self.labels, period=self.period,
             predictions=predictions, scenarios={"reference": reference},
@@ -288,6 +299,9 @@ class InferenceModel:
         return self.result
 
     def _run_scenario(self, name: str, specification: dict[str, Any]) -> None:
+        if self._config.training_config.exclude_temperature:
+            self.result.scenarios[name] = self.result.predictions.total_deaths
+            return
         if "temperature" in specification:
             self._predict_scenario(name, specification["temperature"])
         elif "temperature_c" in specification:
@@ -304,8 +318,6 @@ class InferenceModel:
         """
         self.predictor.eval()
         temperature = temperature.to(device=self.data.population.device, dtype=torch.float32)
-        if self._config.training_config.exclude_temperature:
-            temperature = torch.zeros_like(temperature)
         model_inputs = MortalityModelInputs(temperature, None, None)
         effects = self.predictor.effect_model(model_inputs)
         factors = self.predictor.correction_factors(self.data.population.shape[0])

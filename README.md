@@ -196,7 +196,7 @@ the release checkout and point to the matching files under `data/`.
 
 The source implementation and trained weights come from
 [`weather_sari_model`](https://github.com/lanmao0803/weather_sari_model/tree/9c8f5ae53fbae6e4e907134ae2fa810b770a2875).
-The nine-day experiment selection comes from source revision `2ad9f4e`. The SARI-only weights and extra hybrid members were refreshed from `0ed4790`.
+The nine-day experiment selection comes from source revision `2ad9f4e`. The SARI-only weights were refreshed from `842a29a`, and the extra hybrid members come from `0ed4790`.
 Measured Slurm wall-clock times were unavailable in that collection.
 
 After a Slurm array completes, export its elapsed times alongside the

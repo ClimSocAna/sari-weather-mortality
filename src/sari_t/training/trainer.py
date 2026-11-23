@@ -313,27 +313,29 @@ def train_step(
     updated_baseline = None
     if should_update_baseline(epoch, config):
         with torch.no_grad():
-            reference_effect = reference_temperature_effect(
-                predictor.effect_model,
-                prepared_run.data.model_inputs,
-                prepared_run.weather_variables,
-                prepared_run.config.reference_config,
-                minimum_temperature_effect=cast(
-                    torch.Tensor, step.predictions.minimum_temperature_effect,
-                ),
-            )
-            factors = predictor.correction_factors(
-                step.predictions.total_deaths.shape[0],
-            )
-            reference_deaths = reference_temperature_deaths(
-                reference_effect,
-                MortalityPredictionInputs(
-                    model_inputs=prepared_run.data.model_inputs,
-                    baseline_rate=prepared_run.baseline_rate,
-                    population=prepared_run.data.population,
-                ),
-                factors,
-            )
+            reference_deaths = step.predictions.temperature_deaths
+            if not config.exclude_temperature:
+                reference_effect = reference_temperature_effect(
+                    predictor.effect_model,
+                    prepared_run.data.model_inputs,
+                    prepared_run.weather_variables,
+                    prepared_run.config.reference_config,
+                    minimum_temperature_effect=cast(
+                        torch.Tensor, step.predictions.minimum_temperature_effect,
+                    ),
+                )
+                factors = predictor.correction_factors(
+                    step.predictions.total_deaths.shape[0],
+                )
+                reference_deaths = reference_temperature_deaths(
+                    reference_effect,
+                    MortalityPredictionInputs(
+                        model_inputs=prepared_run.data.model_inputs,
+                        baseline_rate=prepared_run.baseline_rate,
+                        population=prepared_run.data.population,
+                    ),
+                    factors,
+                )
             updated_baseline = calculate_updated_baseline_rate(
                 prepared_run.data.labels.weekly_de_age_sex,
                 step.predictions,
