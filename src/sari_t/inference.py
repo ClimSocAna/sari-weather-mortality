@@ -7,6 +7,7 @@ from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, cast
+import warnings
 
 import torch
 
@@ -217,12 +218,20 @@ class InferenceModel:
         if config.training_config.baseline_adaptation:
             settings = self._evaluation_config
             relative_change = None
-            for _ in range(settings.maximum_iterations):
+            for iteration in range(1, settings.maximum_iterations + 1):
                 reference_deaths = reference_temperature_deaths(reference_effect, inputs, factors)
                 updated = calculate_updated_baseline_rate(
                     self.labels.weekly_de_age_sex, predictions, reference_deaths,
                     inputs.population, config.adaptive_baseline_config,
                 )
+                if not (torch.isfinite(updated) & (updated > 0)).all():
+                    warnings.warn(
+                        f"Rejected adaptive baseline at inference iteration {iteration}: "
+                        "candidate contains non-finite or non-positive rates. Keeping previous baseline.",
+                        RuntimeWarning,
+                        stacklevel=2,
+                    )
+                    break
                 relative_change = (
                     (updated - inputs.baseline_rate).abs() / inputs.baseline_rate.abs()
                 ).amax().item()
