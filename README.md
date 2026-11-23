@@ -25,7 +25,7 @@ predicted deaths = population × corrected baseline
                       + COVID-19 SARI component)
 ```
 
-The weather branch uses a six-day temporal kernel. The two infection branches use non-negative ten-day convolution kernels. During training, the adaptive baseline is updated from smoothed residual mortality rather than optimized by gradient descent. See the manuscript for the complete model definition, counterfactual attribution procedure, validation design, and interpretation.
+The primary models use a nine-day weather kernel (lags 0–8). The two infection branches use non-negative ten-day convolution kernels. During training, the adaptive baseline is updated from smoothed residual mortality rather than optimized by gradient descent. See the manuscript for the complete model definition, counterfactual attribution procedure, validation design, and interpretation.
 
 ## Repository layout
 
@@ -96,6 +96,8 @@ They load native `final_000.pt` through `final_009.pt` from the matching run
 directories under `runtime/training/experiments/`. Run them on a compute node
 with access to the checkout and weights. The notebooks select CUDA when
 available. Their figures and tables are recomputed from the native ensembles.
+Notebooks 01–05 select the updated nine-day checkpoints for weather-enabled
+setups. Notebooks 06–07 continue to compare all 1–30 weather windows.
 The **Load models for inspection** cell in each notebook loads the selected
 member's predictors on CPU before running an analysis. Inspect the hybrid
 predictor as `model` or access any setup as `models[setup]`. Change
@@ -181,8 +183,8 @@ to the `--print-run-directory` command as well.
 
 ## Public weights and run times
 
-The release imports 70 native ensembles from the current `weather_sari_model`
-experiment collection. Each experiment under
+The release includes 79 native ensembles from `weather_sari_model`, including
+the updated nine-day configurations. Each experiment under
 `runtime/training/experiments/<experiment>/` includes all ten final checkpoints
 and the run configuration. The links in
 `runtime/training/sets/` group related experiments. Input paths are relative to
@@ -190,7 +192,7 @@ the release checkout and point to the matching files under `data/`.
 
 The source implementation and trained weights come from
 [`weather_sari_model`](https://github.com/lanmao0803/weather_sari_model/tree/9c8f5ae53fbae6e4e907134ae2fa810b770a2875).
-The source checkout also contains the experiment selection reflected here.
+The nine-day selections and weights come from source revision `2ad9f4e`.
 Measured Slurm wall-clock times were unavailable in that collection.
 
 After a Slurm array completes, export its elapsed times alongside the

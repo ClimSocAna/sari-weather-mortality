@@ -38,7 +38,8 @@ selected_weather: [tas, tdew]
 period:
   start_date: '2014-10-13'
   end_date: '2024-12-29'
-model_config: {}
+model_config:
+  kernel_T_days: 9
 predictor_config: {}
 training_config: {}
 initial_baseline_config:
