@@ -40,7 +40,7 @@ period:
 model_config:
   out_channel: 30
   hidden_dim_init: 128
-  kernel_T_days: 6
+  kernel_T_days: 9
   kernel_sari_days: 10
   include_sari: true
   include_covid: true

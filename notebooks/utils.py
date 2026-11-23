@@ -33,13 +33,13 @@ def checkpoint_paths(setup):
     return paths
 
 
-def ensemble(model, paths, summarize, *, scenarios=None, keep_members=False):
+def ensemble(model, paths, summarize, *, scenarios=None, keep_members=False, baseline_reference=None):
     """Evaluate weights in the supplied workspace and average compact summaries."""
     totals = {}
     members = {}
     for index, path in enumerate(paths):
         model.load_weights(path)
-        result = model.evaluate(scenarios=scenarios)
+        result = model.evaluate(scenarios=scenarios, baseline_reference=baseline_reference)
         for name, value in summarize(model, result).items():
             value = value.detach().cpu()
             if keep_members:

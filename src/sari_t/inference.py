@@ -23,6 +23,7 @@ from .models.interfaces import MortalityModelInputs, MortalityPredictionInputs, 
 from .models.exponential import ExponentialMortalityModel
 from .models.predictor import MortalityPredictor
 from .reference import (
+    ReferenceConfig,
     build_reference_weather,
     dew_point_c,
     reference_temperature_deaths,
@@ -201,7 +202,7 @@ class InferenceModel:
 
     @torch.no_grad()
     def _evaluate_baseline(
-        self, covariates: MortalityModelInputs,
+        self, covariates: MortalityModelInputs, *, baseline_reference: ReferenceConfig | None = None,
     ) -> tuple[MortalityPredictionInputs, MortalityPredictionOutputs, torch.Tensor]:
         """Predict with the initial or adapted baseline and its reference mortality."""
         config = self._config
@@ -211,7 +212,7 @@ class InferenceModel:
         predictions = self.predictor(inputs)
         reference_effect = reference_temperature_effect(
             self.predictor.effect_model, covariates, self.weather_variables,
-            config.reference_config,
+            baseline_reference or config.reference_config,
             minimum_temperature_effect=cast(torch.Tensor, predictions.minimum_temperature_effect),
         )
         factors = self.predictor.correction_factors(self.data.population.shape[0])
@@ -250,8 +251,13 @@ class InferenceModel:
     @torch.no_grad()
     def evaluate(
         self, *, scenarios: dict[str, dict[str, Any]] | None = None,
+        baseline_reference: ReferenceConfig | None = None,
     ) -> MemberResult:
-        """Evaluate factual counts and supplied scenarios with the loaded weights."""
+        """Evaluate a member with an optional reference for baseline fitting.
+
+        The override applies to this evaluation and its `reference` scenario.
+        It leaves the saved configuration and explicit weather scenarios intact.
+        """
         if scenarios is not None and "reference" in scenarios:
             raise ValueError("Scenario name 'reference' is reserved for the configured model reference")
         self.clear_member()
@@ -262,7 +268,9 @@ class InferenceModel:
             covariates = MortalityModelInputs(
                 torch.zeros_like(covariates.temperature), covariates.sari, covariates.covid,
             )
-        inputs, predictions, reference_deaths = self._evaluate_baseline(covariates)
+        inputs, predictions, reference_deaths = self._evaluate_baseline(
+            covariates, baseline_reference=baseline_reference,
+        )
         self._baseline_rate = inputs.baseline_rate
         self._alignment_factor = self._estimate_alignment_factor(predictions)
         reference = apply_mean_alignment(

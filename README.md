@@ -112,8 +112,9 @@ predictor as `model` or access any setup as `models[setup]`. Change
 | [05](notebooks/05_daily_residual_diagnostics.ipynb) | Daily residual, SARI and weather diagnostics | `default`, `tas_only` |
 | [06](notebooks/06_temperature_lag_sensitivity.ipynb) | Daily and weekly training- and validation-period MSE across 1–30 weather input days | Hybrid and air-temperature-only lag sweeps |
 | [07](notebooks/07_period_rmse_by_lag.ipynb) | Period-specific daily and weekly RMSE tables across 1–30 weather input days | Hybrid and air-temperature-only lag sweeps |
+| [08](notebooks/08_baseline_reference_temperature.ipynb) | Sensitivity to baseline reference temperatures from 10 to 20 °C | Nine-day hybrid ensemble |
 
-Notebooks 01–05 and 07 reconstruct mortality through 28 December 2025. Notebook 06
+Notebooks 01–05 and 07–08 reconstruct mortality through 28 December 2025. Notebook 06
 uses each checkpoint's original training and validation periods. Full notebook
 execution requires the native ensembles and a compute node.
 
@@ -165,15 +166,18 @@ paths. Resume in the same data location with
 `python train.py --resume PATH_TO_LAST_CHECKPOINT`. Train ensemble members
 with distinct `--member-id` values and the same experiment configuration.
 
-To load the completed members using the default experiment configuration:
+To load the ten manuscript members using the default experiment configuration:
 
 ```bash
 run_dir="$(python train.py --print-run-directory)"
 PYTHONPATH=src python - "$run_dir" <<'PYTHON'
+from pathlib import Path
 import sys
 from sari_t.inference import evaluate_runs
 
-result = evaluate_runs(sys.argv[1], device="cpu")
+run = Path(sys.argv[1])
+members = [run / "checkpoints" / f"final_{member:03d}.pt" for member in range(10)]
+result = evaluate_runs(members, device="cpu")
 print(result.predictions.total_deaths.shape)
 PYTHON
 ```
@@ -186,13 +190,15 @@ to the `--print-run-directory` command as well.
 The release includes 79 native ensembles from `weather_sari_model`, including
 the updated nine-day configurations. Each experiment under
 `runtime/training/experiments/<experiment>/` includes all ten final checkpoints
-and the run configuration. The links in
+and the run configuration. The six- and nine-day hybrid runs also include
+members `010`–`049` for initialization sensitivity. The manuscript notebooks
+select `000`–`009`. The links in
 `runtime/training/sets/` group related experiments. Input paths are relative to
 the release checkout and point to the matching files under `data/`.
 
 The source implementation and trained weights come from
 [`weather_sari_model`](https://github.com/lanmao0803/weather_sari_model/tree/9c8f5ae53fbae6e4e907134ae2fa810b770a2875).
-The nine-day selections and weights come from source revision `2ad9f4e`.
+The nine-day experiment selection comes from source revision `2ad9f4e`. The SARI-only weights and extra hybrid members were refreshed from `0ed4790`.
 Measured Slurm wall-clock times were unavailable in that collection.
 
 After a Slurm array completes, export its elapsed times alongside the
