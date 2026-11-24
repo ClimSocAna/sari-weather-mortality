@@ -112,8 +112,9 @@ predictor as `model` or access any setup as `models[setup]`. Change
 | [05](notebooks/05_daily_residual_diagnostics.ipynb) | Daily residual, SARI and weather diagnostics | `default`, `tas_only` |
 | [06](notebooks/06_temperature_lag_sensitivity.ipynb) | Split MSE plots and period-specific RMSE tables across 1–30 weather input days | Hybrid, temperature-only, and temperature-plus-dew-point weather-only lag sweeps |
 | [08](notebooks/08_baseline_reference_temperature.ipynb) | Sensitivity to baseline reference temperatures from 10 to 20 °C | Nine-day hybrid ensemble |
+| [09](notebooks/09_weather_date_prediction.ipynb) | Day-of-year prediction, Cartesian heatmaps, and polar date errors | Weather-only `tas` and `tas + tdew` lag sweeps |
 
-The notebooks reconstruct mortality through 28 December 2025. Notebook 06
+The mortality analyses reconstruct deaths through 28 December 2025. Notebook 06
 also reports MSE for each checkpoint's original training and validation periods. Full notebook
 execution requires the native ensembles and a compute node.
 
