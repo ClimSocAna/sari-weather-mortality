@@ -97,7 +97,7 @@ directories under `runtime/training/experiments/`. Run them on a compute node
 with access to the checkout and weights. The notebooks select CUDA when
 available. Their figures and tables are recomputed from the native ensembles.
 Notebooks 01–05 select the updated nine-day checkpoints for weather-enabled
-setups. Notebooks 06–07 continue to compare all 1–30 weather windows.
+setups. Notebook 06 compares three model families across all 1–30 weather windows.
 The **Load models for inspection** cell in each notebook loads the selected
 member's predictors on CPU before running an analysis. Inspect the hybrid
 predictor as `model` or access any setup as `models[setup]`. Change
@@ -110,12 +110,11 @@ predictor as `model` or access any setup as `models[setup]`. Change
 | [03](notebooks/03_adaptive_baseline_mortality.ipynb) | Registered and adaptive baseline mortality | `default` |
 | [04](notebooks/04_model_performance_sensitivity.ipynb) | Model performance and sensitivity | `default`, `exclude_temperature`, `temperature_only`, `no_covid`, `baseline_static`, `baseline_trimmed_mean`, `baseline_double_sided`, `tas_only`, `tas_wet_bulb`, `no_mean_alignment` |
 | [05](notebooks/05_daily_residual_diagnostics.ipynb) | Daily residual, SARI and weather diagnostics | `default`, `tas_only` |
-| [06](notebooks/06_temperature_lag_sensitivity.ipynb) | Daily and weekly training- and validation-period MSE across 1–30 weather input days | Hybrid and air-temperature-only lag sweeps |
-| [07](notebooks/07_period_rmse_by_lag.ipynb) | Period-specific daily and weekly RMSE tables across 1–30 weather input days | Hybrid and air-temperature-only lag sweeps |
+| [06](notebooks/06_temperature_lag_sensitivity.ipynb) | Split MSE plots and period-specific RMSE tables across 1–30 weather input days | Hybrid, temperature-only, and temperature-plus-dew-point weather-only lag sweeps |
 | [08](notebooks/08_baseline_reference_temperature.ipynb) | Sensitivity to baseline reference temperatures from 10 to 20 °C | Nine-day hybrid ensemble |
 
-Notebooks 01–05 and 07–08 reconstruct mortality through 28 December 2025. Notebook 06
-uses each checkpoint's original training and validation periods. Full notebook
+The notebooks reconstruct mortality through 28 December 2025. Notebook 06
+also reports MSE for each checkpoint's original training and validation periods. Full notebook
 execution requires the native ensembles and a compute node.
 
 ## Native training and inference
@@ -186,7 +185,7 @@ to the `--print-run-directory` command as well.
 
 ## Public weights and run times
 
-The release includes 70 native ensembles from `weather_sari_model`, including
+The release includes 99 native ensembles from `weather_sari_model`, including
 the updated nine-day configurations. Each experiment under
 `runtime/training/experiments/<experiment>/` includes the final checkpoints and run configuration. The six- and nine-day hybrid runs
 have 50 members each. Other ensembles have ten members each. The notebooks use
@@ -197,6 +196,7 @@ the release checkout and point to the matching files under `data/`.
 The source implementation and trained weights come from
 [`weather_sari_model`](https://github.com/lanmao0803/weather_sari_model/tree/9c8f5ae53fbae6e4e907134ae2fa810b770a2875).
 The nine-day experiment selection comes from source revision `2ad9f4e`. The SARI-only weights were refreshed from `842a29a`, and the extra hybrid members come from `0ed4790`.
+The weather-only air temperature and dew-point lag sweep comes from `be2e70a`.
 Measured Slurm wall-clock times were unavailable in that collection.
 
 After a Slurm array completes, export its elapsed times alongside the
